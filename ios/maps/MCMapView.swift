@@ -41,6 +41,9 @@ open class MCMapView: MTKView {
     public weak var sizeDelegate: MCMapSizeDelegate?
 
     public var renderTargetTextures: [RenderTargetTexture] = []
+    
+    /// Active anchors that track coordinates on the map
+    private var anchors: [MCMapAnchor] = []
 
     public init(
         mapConfig: MCMapConfig = MCMapConfig(
@@ -130,6 +133,9 @@ open class MCMapView: MTKView {
         addEventListeners()
 
         setupMacGestureRecognizersIfNeeded()
+        
+        // Add camera listener to update anchors when camera changes
+        camera.addListener(self)
     }
 
     private func addEventListeners() {
@@ -442,6 +448,43 @@ extension MCMapView {
     }
 }
 
+// MARK: - Anchor Management
+extension MCMapView {
+    
+    /// Create a new anchor for the given coordinate
+    /// - Parameter coordinate: The map coordinate to anchor to
+    /// - Returns: A new MCMapAnchor that can be used for AutoLayout
+    public func createAnchor(for coordinate: MCCoord) -> MCMapAnchor {
+        let anchor = MCMapAnchor(coordinate: coordinate)
+        anchor.addToMapView(self)
+        anchors.append(anchor)
+        return anchor
+    }
+    
+    /// Remove an anchor from the map view
+    /// - Parameter anchor: The anchor to remove
+    public func removeAnchor(_ anchor: MCMapAnchor) {
+        anchor.removeFromMapView()
+        anchors.removeAll { $0 === anchor }
+    }
+    
+    /// Remove all anchors from the map view
+    public func removeAllAnchors() {
+        anchors.forEach { $0.removeFromMapView() }
+        anchors.removeAll()
+    }
+    
+    /// Get all active anchors
+    public var activeAnchors: [MCMapAnchor] {
+        return anchors
+    }
+    
+    /// Update all anchor positions (called when camera changes)
+    private func updateAnchorPositions() {
+        anchors.forEach { $0.updateScreenPosition() }
+    }
+}
+
 extension MCMapView: UIGestureRecognizerDelegate {
     // MARK: - Mac setup
 
@@ -533,5 +576,42 @@ private final class MCMapViewMapReadyCallbacks:
                     self.semaphore.signal()
                 }
         }
+    }
+}
+
+// MARK: - Camera Listener for Anchors
+extension MCMapView: MCMapCameraListenerInterface {
+    
+    public nonisolated func onVisibleBoundsChanged(_ visibleBounds: MCRectCoord, zoom: Double) {
+        Task { @MainActor in
+            updateAnchorPositions()
+        }
+    }
+    
+    public nonisolated func onCameraChange(
+        _ viewMatrix: [NSNumber], 
+        projectionMatrix: [NSNumber], 
+        origin: MCVec3D, 
+        verticalFov: Float, 
+        horizontalFov: Float, 
+        width: Float, 
+        height: Float, 
+        focusPointAltitude: Float, 
+        focusPointPosition: MCCoord, 
+        zoom: Float
+    ) {
+        Task { @MainActor in
+            updateAnchorPositions()
+        }
+    }
+    
+    public nonisolated func onRotationChanged(_ angle: Float) {
+        Task { @MainActor in
+            updateAnchorPositions()
+        }
+    }
+    
+    public nonisolated func onMapInteraction() {
+        // No need to update anchors for general interactions
     }
 }
