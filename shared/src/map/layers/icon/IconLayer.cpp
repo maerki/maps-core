@@ -20,6 +20,7 @@
 #include "Matrix.h"
 #include "MapConfig.h"
 #include "Vec2FHelper.h"
+#include "OffscreenRenderTargetHelper.h"
 #include <IconType.h>
 
 IconLayer::IconLayer()
@@ -362,6 +363,14 @@ void IconLayer::preGenerateRenderPasses() {
 void IconLayer::onAdded(const std::shared_ptr<MapInterface> &mapInterface, int32_t layerIndex) {
     this->mapInterface = mapInterface;
     is3D = mapInterface->is3d();
+    
+    // Automatically create offscreen render target for this layer
+    OffscreenRenderTargetHelper::setupLayerOffscreenRendering(
+        std::dynamic_pointer_cast<SimpleLayerInterface>(shared_from_this()),
+        mapInterface,
+        "IconLayer_" + std::to_string(layerIndex)
+    );
+    
     {
         std::scoped_lock<std::recursive_mutex> lock(addingQueueMutex);
         if (!addingQueue.empty()) {

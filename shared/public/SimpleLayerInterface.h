@@ -32,6 +32,26 @@ protected:
         renderTarget = target;
     }
 
+    /** Check if this layer has an offscreen render target */
+    virtual bool hasOffscreenRenderTarget() const {
+        return renderTarget != nullptr;
+    }
+
+    /** Mark this layer as needing a redraw (invalidate its render passes) */
+    virtual void invalidate() {
+        isInvalidated = true;
+    }
+
+    /** Check if this layer needs to be redrawn */
+    virtual bool needsRedraw() const {
+        return isInvalidated;
+    }
+
+    /** Mark this layer as having been redrawn */
+    virtual void markAsRedrawn() {
+        isInvalidated = false;
+    }
+
     virtual void onAdded(const std::shared_ptr<MapInterface> & mapInterface, int32_t layerIndex) {};
 
     virtual void onRemoved() {};
@@ -60,4 +80,5 @@ protected:
     virtual void forceReload() {}
 
     std::shared_ptr<::RenderTargetInterface> renderTarget = nullptr;
+    bool isInvalidated = true; // Start invalidated so first draw works
 };

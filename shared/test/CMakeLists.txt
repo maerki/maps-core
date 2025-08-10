@@ -15,6 +15,7 @@ add_executable(tests
   "TestGeometryHandler.cpp"
   "TestValueEvaluate.cpp"
   "TestVectorSet.cpp"
+  "TestOffscreenRenderPasses.cpp"
   "helper/TestData.cpp"
 )
 # Use mapscore _private_ include to allow testing functionality declared in internal headers.
