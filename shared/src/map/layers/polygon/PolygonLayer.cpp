@@ -17,6 +17,7 @@
 #include "PolygonHelper.h"
 #include "RenderObject.h"
 #include "RenderPass.h"
+#include "OffscreenRenderTargetHelper.h"
 #include <algorithm>
 #include <map>
 
@@ -31,6 +32,7 @@ void PolygonLayer::setPolygons(const std::vector<PolygonInfo> &polygons, const V
         add(polygon);
     }
     generateRenderPasses();
+    invalidate(); // Mark this layer as needing redraw
     if (mapInterface)
         mapInterface->invalidate();
 }
@@ -93,6 +95,7 @@ void PolygonLayer::remove(const PolygonInfo &polygon) {
         }
     }
     generateRenderPasses();
+    invalidate(); // Mark this layer as needing redraw
     mapInterface->invalidate();
 }
 
@@ -282,6 +285,14 @@ std::vector<std::shared_ptr<::RenderPassInterface>> PolygonLayer::buildRenderPas
 
 void PolygonLayer::onAdded(const std::shared_ptr<MapInterface> &mapInterface, int32_t layerIndex) {
     this->mapInterface = mapInterface;
+    
+    // Automatically create offscreen render target for this layer
+    OffscreenRenderTargetHelper::setupLayerOffscreenRendering(
+        std::dynamic_pointer_cast<SimpleLayerInterface>(shared_from_this()),
+        mapInterface,
+        "PolygonLayer_" + std::to_string(layerIndex)
+    );
+    
     {
         std::lock_guard<std::recursive_mutex> lock(addingQueueMutex);
         for (auto const &polygon : addingQueue) {

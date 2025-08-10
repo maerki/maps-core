@@ -118,6 +118,7 @@ void IconLayer::removeIdentifierSet(const std::unordered_set<std::string> &ident
     }
 
     preGenerateRenderPasses();
+    invalidate(); // Mark this layer as needing redraw
     if (mapInterface)
         mapInterface->invalidate();
 }
@@ -185,6 +186,7 @@ void IconLayer::addIcons(const std::vector<std::shared_ptr<IconInfoInterface>> &
         }));
 
     preGenerateRenderPasses();
+    invalidate(); // Mark this layer as needing redraw
     if (mapInterface)
         mapInterface->invalidate();
 }
@@ -192,6 +194,7 @@ void IconLayer::addIcons(const std::vector<std::shared_ptr<IconInfoInterface>> &
 void IconLayer::setRenderPassIndex(int32_t index) {
     renderPassIndex = index;
     preGenerateRenderPasses();
+    invalidate(); // Mark this layer as needing redraw
 
     if (mapInterface) {
         mapInterface->invalidate();
