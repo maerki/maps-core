@@ -32,6 +32,9 @@ public class MCMapAnchor: NSObject {
     /// Internal anchor view for layout constraints
     private let anchorView: UIView
     
+    /// Position constraints that are updated when the anchor moves
+    private var positionConstraints: [NSLayoutConstraint] = []
+    
     /// Center X layout anchor
     public var centerXAnchor: NSLayoutXAxisAnchor {
         anchorView.centerXAnchor
@@ -108,19 +111,18 @@ public class MCMapAnchor: NSObject {
         guard let mapView = mapView, anchorView.superview == mapView else { return }
         
         // Remove existing position constraints
-        anchorView.constraints.forEach { constraint in
-            if constraint.firstAttribute == .centerX || constraint.firstAttribute == .centerY {
-                constraint.isActive = false
-            }
-        }
+        NSLayoutConstraint.deactivate(positionConstraints)
+        positionConstraints.removeAll()
         
         // Add new position constraints
-        NSLayoutConstraint.activate([
+        positionConstraints = [
             anchorView.centerXAnchor.constraint(equalTo: mapView.leadingAnchor, constant: screenPosition.x),
             anchorView.centerYAnchor.constraint(equalTo: mapView.topAnchor, constant: screenPosition.y),
             anchorView.widthAnchor.constraint(equalToConstant: 0),
             anchorView.heightAnchor.constraint(equalToConstant: 0)
-        ])
+        ]
+        
+        NSLayoutConstraint.activate(positionConstraints)
     }
     
     /// Add this anchor to a map view
@@ -132,6 +134,8 @@ public class MCMapAnchor: NSObject {
     
     /// Remove this anchor from its map view
     func removeFromMapView() {
+        NSLayoutConstraint.deactivate(positionConstraints)
+        positionConstraints.removeAll()
         anchorView.removeFromSuperview()
         self.mapView = nil
     }

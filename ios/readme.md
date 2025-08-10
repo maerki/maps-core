@@ -490,6 +490,123 @@ lineLayer?.add(MCLineFactory.createLine("lineIdentifier",
 ```
 
 
+### Anchors
+
+Open Mobile Maps provides a concept of "anchors" that allow you to position UIKit views relative to map coordinates using AutoLayout. Anchors automatically update their screen positions when the map camera changes (pan, zoom, rotate), maintaining the layout relationships.
+
+#### Creating Anchors
+
+Create an anchor for any map coordinate:
+
+```swift
+let coordinate = MCCoord(lat: 47.3769, lon: 8.5417) // Zurich
+let anchor = mapView.createAnchor(for: coordinate)
+```
+
+#### Using Anchors with AutoLayout
+
+Anchors provide standard NSLayoutAnchor properties that can be used in AutoLayout constraints:
+
+```swift
+// Position a pin view at the coordinate
+let pinView = UIView()
+pinView.backgroundColor = .red
+pinView.translatesAutoresizingMaskIntoConstraints = false
+view.addSubview(pinView)
+
+NSLayoutConstraint.activate([
+    pinView.centerXAnchor.constraint(equalTo: anchor.centerXAnchor),
+    pinView.centerYAnchor.constraint(equalTo: anchor.centerYAnchor),
+    pinView.widthAnchor.constraint(equalToConstant: 20),
+    pinView.heightAnchor.constraint(equalToConstant: 20)
+])
+
+// Position a label above the pin
+let labelView = UILabel()
+labelView.text = "Zurich"
+labelView.translatesAutoresizingMaskIntoConstraints = false
+view.addSubview(labelView)
+
+NSLayoutConstraint.activate([
+    labelView.centerXAnchor.constraint(equalTo: anchor.centerXAnchor),
+    labelView.bottomAnchor.constraint(equalTo: anchor.topAnchor, constant: -10)
+])
+```
+
+#### Available Anchor Properties
+
+All anchors provide the following NSLayoutAnchor properties:
+- `centerXAnchor` and `centerYAnchor` - for centering views at the coordinate
+- `leadingAnchor` and `trailingAnchor` - for horizontal positioning
+- `topAnchor` and `bottomAnchor` - for vertical positioning
+
+#### Modifying Anchor Coordinates
+
+The coordinate of an anchor can be modified at any time:
+
+```swift
+// Move the anchor to a new location
+anchor.coordinate = MCCoord(lat: 46.9481, lon: 7.4474) // Bern
+```
+
+All views constrained to the anchor will automatically move to the new position.
+
+#### Managing Anchors
+
+```swift
+// Remove a specific anchor
+mapView.removeAnchor(anchor)
+
+// Remove all anchors
+mapView.removeAllAnchors()
+
+// Get all active anchors
+let anchors = mapView.activeAnchors
+```
+
+#### Complete Example
+
+```swift
+class MapViewController: UIViewController {
+    lazy var mapView = MCMapView()
+    
+    override func loadView() { 
+        view = mapView 
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // Add a base map layer
+        mapView.add(layer: TiledRasterLayer("osm", webMercatorUrlFormat: "https://tiles.sample.org/{z}/{x}/{y}.png"))
+        
+        // Create coordinate and anchor
+        let zurichCoord = MCCoord(lat: 47.3769, lon: 8.5417)
+        let anchor = mapView.createAnchor(for: zurichCoord)
+        
+        // Create and position a pin view
+        let pinView = UIView()
+        pinView.backgroundColor = .red
+        pinView.layer.cornerRadius = 10
+        pinView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(pinView)
+        
+        NSLayoutConstraint.activate([
+            pinView.centerXAnchor.constraint(equalTo: anchor.centerXAnchor),
+            pinView.centerYAnchor.constraint(equalTo: anchor.centerYAnchor),
+            pinView.widthAnchor.constraint(equalToConstant: 20),
+            pinView.heightAnchor.constraint(equalToConstant: 20)
+        ])
+        
+        // Center the map on Zurich
+        mapView.camera.move(toCenterPositionZoom: zurichCoord, zoom: 10.0, animated: false)
+    }
+}
+```
+
+The pin will stay positioned at the Zurich coordinate even as users interact with the map.
+
+
 
 ### Customisation
 
