@@ -82,6 +82,12 @@ open class MCMapView: MTKView {
     }
 
     deinit {
+        // Remove camera listener to break retain cycle
+        camera.removeListener(self)
+        
+        // Remove all anchors to clean up properly
+        removeAllAnchors()
+        
         // nasty workaround for the dispatch_semaphore crash
         for _ in 0..<3 {
             renderSemaphore.signal()
