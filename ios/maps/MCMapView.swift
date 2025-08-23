@@ -44,6 +44,9 @@ open class MCMapView: MTKView {
     
     /// Active anchors that track coordinates on the map
     private var anchors: [MCMapAnchor] = []
+    
+    /// Camera listener wrapper to avoid retain cycle
+    private var cameraListenerWrapper: CameraListenerWrapper?
 
     public init(
         mapConfig: MCMapConfig = MCMapConfig(
@@ -82,8 +85,11 @@ open class MCMapView: MTKView {
     }
 
     deinit {
-        // Remove camera listener to break retain cycle
-        camera.removeListener(self)
+        // Remove camera listener wrapper to break retain cycle
+        if let wrapper = cameraListenerWrapper {
+            camera.removeListener(wrapper)
+            cameraListenerWrapper = nil
+        }
         
         // Remove all anchors to clean up properly
         removeAllAnchors()
@@ -140,8 +146,9 @@ open class MCMapView: MTKView {
 
         setupMacGestureRecognizersIfNeeded()
         
-        // Add camera listener to update anchors when camera changes
-        camera.addListener(self)
+        // Add camera listener wrapper to update anchors when camera changes (avoids retain cycle)
+        cameraListenerWrapper = CameraListenerWrapper(mapView: self)
+        camera.addListener(cameraListenerWrapper!)
     }
 
     private func addEventListeners() {
@@ -486,7 +493,7 @@ extension MCMapView {
     }
     
     /// Update all anchor positions (called when camera changes)
-    private func updateAnchorPositions() {
+    internal func updateAnchorPositions() {
         anchors.forEach { $0.updateScreenPosition() }
     }
 }
@@ -585,12 +592,17 @@ private final class MCMapViewMapReadyCallbacks:
     }
 }
 
-// MARK: - Camera Listener for Anchors
-extension MCMapView: MCMapCameraListenerInterface {
+// MARK: - Camera Listener Wrapper to avoid retain cycle
+private final class CameraListenerWrapper: MCMapCameraListenerInterface {
+    weak var mapView: MCMapView?
+    
+    init(mapView: MCMapView) {
+        self.mapView = mapView
+    }
     
     public nonisolated func onVisibleBoundsChanged(_ visibleBounds: MCRectCoord, zoom: Double) {
         Task { @MainActor in
-            updateAnchorPositions()
+            mapView?.updateAnchorPositions()
         }
     }
     
@@ -607,13 +619,13 @@ extension MCMapView: MCMapCameraListenerInterface {
         zoom: Float
     ) {
         Task { @MainActor in
-            updateAnchorPositions()
+            mapView?.updateAnchorPositions()
         }
     }
     
     public nonisolated func onRotationChanged(_ angle: Float) {
         Task { @MainActor in
-            updateAnchorPositions()
+            mapView?.updateAnchorPositions()
         }
     }
     
